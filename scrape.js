@@ -1,8 +1,6 @@
 const credential = require('./credentials')
 const puppeteer = require('puppeteer');
 
-const delay = ms => new Promise(res => setTimeout(res, ms));
-
 let get_link_address = async (page, selector) => {
     const link = await page.evaluate((selector) => {
         const href = document.querySelectorAll(selector)[0].getAttribute("href")
@@ -23,8 +21,7 @@ let goTo = async (page, selector) => {
 let scrape_event_content = async (page) => {
     const content = await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
-        delay(1000)
-        window.scrollTo(0, document.body.scrollHeight);
+        setTimeout(function(){ window.scrollTo(0, document.body.scrollHeight);; }, 2000);
         return 'content';
     })
     return content;
@@ -33,6 +30,7 @@ let scrape_event_content = async (page) => {
 let scrape = async () => {
     const browser = await puppeteer.launch({
         executablePath: '/usr/bin/chromium',
+        args: ["--disable-notifications"],
         headless: false
     });
 
@@ -53,9 +51,9 @@ let scrape = async () => {
 
     const result = await scrape_event_content(page)
     
-    await page.screenshot({
-        path: 'fb.png'
-    });
+    // await page.screenshot({
+    //     path: 'fb.png'
+    // });
 
     browser.close()
     return result
