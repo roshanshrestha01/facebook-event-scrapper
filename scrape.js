@@ -1,6 +1,7 @@
 const credential = require('./credentials')
 const puppeteer = require('puppeteer');
 
+const delay = ms => new Promise(res => setTimeout(res, ms));
 
 let get_link_address = async (page, selector) => {
     const link = await page.evaluate((selector) => {
@@ -10,9 +11,23 @@ let get_link_address = async (page, selector) => {
     return link
 }
 
+let goTo = async (page, selector) => {
+    const {base_url} = credential
+    const link = await get_link_address(page, selector)
+    await page.goto(`${base_url}${link}`)
+    await page.waitFor(1000);
+    return link
+}
+
 
 let scrape_event_content = async (page) => {
-    return 'test';
+    const content = await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+        delay(1000)
+        window.scrollTo(0, document.body.scrollHeight);
+        return 'content';
+    })
+    return content;
 };
 
 let scrape = async () => {
@@ -22,29 +37,27 @@ let scrape = async () => {
     });
 
     const page = await browser.newPage();
-    const base_url = 'https://www.facebook.com'
+    const {base_url, username, password} = credential
 
     await page.goto(base_url);
-    await page.type('#email', credential.username);
-    await page.type('#pass', credential.password);
+    await page.type('#email', username);
+    await page.type('#pass', password);
     await page.click('#loginbutton input');
     await page.waitForNavigation()
 
     console.log('Navigate to Event page.')
-    const event_link = await get_link_address(page, '#navItem_2344061033 > a')
-    await page.goto(`${base_url}${event_link}`)
+    await goTo(page, '#navItem_2344061033 > a')
 
     console.log('Navigate to Discover page.')
-    await page.waitFor(2000);
-    const discover_link = await get_link_address(page, '#u_0_u > div:nth-child(4) > a')
-    await page.goto(`${base_url}${discover_link}`)
-    await page.waitFor(2000);
+    await goTo(page, '#u_0_u > div:nth-child(4) > a')
 
+    const result = await scrape_event_content(page)
+    
     await page.screenshot({
         path: 'fb.png'
     });
+
     browser.close()
-    const result = await scrape_event_content(page)
     return result
 };
 
