@@ -43,10 +43,23 @@ let scrape_event_content = async (page) => {
             let dct = {};
             const event = events[i];
             const title = event.querySelector('div a._7ty')
+            const info = event.querySelector('div span:not(._5ls1):not(._5x8v):not(._5a4-):not([role]):not(._5a4z)').innerHTML
+            const month = event.querySelector('div span._5a4-').innerHTML
+            const date = event.querySelector('div span._5a4z').innerHTML
+            const today = new Date()
+            const year = today.getFullYear()
+            let see_more = true
+            while (see_more) {
+                const see_more_button = event.querySelector("p._4etw a[title='See more']")
+                if (see_more_button)
+                    see_more_button.click()
+                see_more = !see_more_button.classList.contains('_4a6u');
+            }
+            const description = event.querySelector("p._4etw span")
             dct['title'] = title.innerHTML
-            // const info = event.querySelector('div span:not(._5ls1):not(._5x8v):not(._5a4-):not([role]):not(._5a4z)').innerHTML
-            // console.log(info)
-            // dct['info'] = info
+            dct['description'] = description.innerHTML
+            dct['info'] = info
+            dct['start_date'] = `${date} ${month}, ${year}`
             data.push(dct)
         }
         return data;
