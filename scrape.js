@@ -1,5 +1,5 @@
 const credential = require('./credentials')
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer')
 
 let get_link_address = async (page, selector) => {
     const link = await page.evaluate((selector) => {
@@ -10,7 +10,9 @@ let get_link_address = async (page, selector) => {
 }
 
 let goTo = async (page, selector) => {
-    const {base_url} = credential
+    const {
+        base_url
+    } = credential
     const link = await get_link_address(page, selector)
     await page.goto(`${base_url}${link}`)
     await page.waitFor(1000);
@@ -19,11 +21,36 @@ let goTo = async (page, selector) => {
 
 
 let scrape_event_content = async (page) => {
-    const content = await page.evaluate(() => {
-        window.scrollTo(0, document.body.scrollHeight);
-        setTimeout(function(){ window.scrollTo(0, document.body.scrollHeight);; }, 2000);
-        return 'content';
-    })
+    const {
+        scroll_event_page
+    } = credential
+    console.log(scroll_event_page)
+    const content = await page.evaluate(async (scroll_event_page) => {
+
+        let sleep = (time) => {
+            return new Promise((resolve) => setTimeout(resolve, time));
+        }
+
+        for (let i = 0; i < scroll_event_page; i++) {
+            window.scrollTo(0, document.body.scrollHeight);
+            await sleep(1000)
+            // window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        let data = []
+        const events = document.querySelectorAll("#u_0_t > div > div._5c_7._4bl7 > div > div > div:nth-child(2) > ul li")
+        for (let i = 0; i < events.length - 1; i++) {
+            let dct = {};
+            const event = events[i];
+            const title = event.querySelector('div a._7ty')
+            dct['title'] = title.innerHTML
+            // const info = event.querySelector('div span:not(._5ls1):not(._5x8v):not(._5a4-):not([role]):not(._5a4z)').innerHTML
+            // console.log(info)
+            // dct['info'] = info
+            data.push(dct)
+        }
+        return data;
+    }, scroll_event_page)
     return content;
 };
 
@@ -35,7 +62,11 @@ let scrape = async () => {
     });
 
     const page = await browser.newPage();
-    const {base_url, username, password} = credential
+    const {
+        base_url,
+        username,
+        password
+    } = credential
 
     await page.goto(base_url);
     await page.type('#email', username);
@@ -50,11 +81,7 @@ let scrape = async () => {
     await goTo(page, '#u_0_u > div:nth-child(4) > a')
 
     const result = await scrape_event_content(page)
-    
-    // await page.screenshot({
-    //     path: 'fb.png'
-    // });
-
+    // await page.waitForNavigation()
     browser.close()
     return result
 };
