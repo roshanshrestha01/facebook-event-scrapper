@@ -56,6 +56,7 @@ let scrape_event_content = async (page) => {
                 see_more = !see_more_button.classList.contains('_4a6u');
             }
             const description = event.querySelector("p._4etw span")
+            dct['id'] = event.getAttribute('id').replace(/anchor./g, '')
             dct['title'] = title.innerHTML
             dct['description'] = description.innerHTML
             dct['info'] = info
@@ -71,7 +72,7 @@ let scrape = async () => {
     const browser = await puppeteer.launch({
         executablePath: '/usr/bin/chromium',
         args: ["--disable-notifications"],
-        headless: false
+        // headless: false
     });
 
     const page = await browser.newPage();
