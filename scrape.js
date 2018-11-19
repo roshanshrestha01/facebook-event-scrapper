@@ -3,12 +3,20 @@ const puppeteer = require('puppeteer')
 const fs = require('fs')
 const request = require('request')
 
+
+let check_directory = (path) => {
+    if (!fs.existsSync(path)) {
+        fs.mkdirSync(path);
+    }
+}
+
 let download = (uri, filename, callback) => {
     request.head(uri, function (err, res, body) {
         console.log('content-type:', res.headers['content-type']);
         console.log('content-length:', res.headers['content-length']);
-
-        request(uri).pipe(fs.createWriteStream(`${filename}.png`)).on('close', callback);
+        const dir = credential.media_path
+        check_directory(dir)
+        request(uri).pipe(fs.createWriteStream(`${dir}/${filename}.png`)).on('close', callback);
     });
 };
 
@@ -67,7 +75,7 @@ let scrape_event_content = async (page) => {
                 see_more = !see_more_button.classList.contains('_4a6u');
             }
             const description = event.querySelector("p._4etw span")
-            dct['id'] = event.getAttribute('id').replace(/anchor./g, '')
+            dct['id'] = event.getAttribute('id').replace(/anchor.+/g, '')
             dct['title'] = title.innerHTML
             dct['description'] = description.innerHTML
             dct['info'] = info
@@ -78,6 +86,7 @@ let scrape_event_content = async (page) => {
     }, scroll_event_page)
     return content;
 };
+
 
 let scrape = async () => {
     const browser = await puppeteer.launch({
@@ -90,6 +99,7 @@ let scrape = async () => {
     const {
         base_url,
         event_url,
+        data_path,
         username,
         password
     } = credential
@@ -111,21 +121,25 @@ let scrape = async () => {
         return element['id']
     });
 
+    check_directory(data_path)
+    const json = JSON.stringify(result);
+    fs.writeFile(`${data_path}/scrape.json`, json, 'utf8');
+
+
     console.log('Event detail page visit start ...')
     for (idx in event_ids) {
-        console.log('event_id', idx)
         event_id = event_ids[idx]
         const event_detail_url = event_url.replace('${eventId}', event_id)
-        console.log(event_detail_url)
+        console.log('Fetching...', event_detail_url)
         await page.goto(event_detail_url);
         await page.waitFor(2)
         const image_url = await page.evaluate(async () => {
-
             let sleep = (time) => {
                 return new Promise((resolve) => setTimeout(resolve, time));
             }
-
             const cover_link = document.querySelector('#event_header_primary > div:nth-child(1) > div._3kwh > a')
+            if (!cover_link) 
+                await sleep(1000)
             cover_link.click()
             await sleep(1000)
             const image = document.querySelector('#photos_snowlift > div._n9 > div > div.fbPhotoSnowliftContainer.snowliftPayloadRoot.uiContextualLayerParent > div.clearfix.fbPhotoSnowliftPopup > div.stageWrapper.lfloat._ohe > div.stage > div._2-sx > img')
