@@ -122,10 +122,8 @@ let scrape = async () => {
     });
 
     check_directory(data_path)
-    const json = JSON.stringify(result);
-    fs.writeFile(`${data_path}/scrape.json`, json, 'utf8');
 
-
+    let image_not_found_events = []
     console.log('Event detail page visit start ...')
     for (idx in event_ids) {
         event_id = event_ids[idx]
@@ -138,23 +136,34 @@ let scrape = async () => {
                 return new Promise((resolve) => setTimeout(resolve, time));
             }
             const cover_link = document.querySelector('#event_header_primary > div:nth-child(1) > div._3kwh > a')
-            if (!cover_link) 
-                await sleep(1000)
+            if (!cover_link)
+                return
             cover_link.click()
             await sleep(1000)
             const image = document.querySelector('#photos_snowlift > div._n9 > div > div.fbPhotoSnowliftContainer.snowliftPayloadRoot.uiContextualLayerParent > div.clearfix.fbPhotoSnowliftPopup > div.stageWrapper.lfloat._ohe > div.stage > div._2-sx > img')
             const image_url = image.getAttribute('src')
             return image_url
         })
-        await download(image_url, event_id, function () {
-            console.log('done')
-        })
-
+        if (image_url) {
+            await download(image_url, event_id, function () {
+                console.log('done')
+            })
+        } else {
+            image_not_found_events.push(event_id)
+            console.log(`Cannot find image for ${event_id}.`)
+        }
     }
+
+    const data = {
+        'events_without_image': image_not_found_events, 
+        'results': result
+    }
+    fs.writeFile(`${data_path}/scrape.json`, JSON.stringify(data), 'utf8');
+    
     browser.close()
     return result
 };
 
 scrape().then((value) => {
-    console.log(result); // Success!
+    console.log('Finish'); // Success!
 });
