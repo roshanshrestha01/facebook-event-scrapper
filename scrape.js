@@ -59,28 +59,28 @@ let scrape_event_content = async (page) => {
         let data = []
         const events = document.querySelectorAll("#u_0_t > div > div._5c_7._4bl7 > div > div > div:nth-child(2) > ul li")
         for (let i = 0; i < events.length - 1; i++) {
-            let dct = {};
+            // let dct = {};
             const event = events[i];
-            const title = event.querySelector('div a._7ty')
-            const info = event.querySelector('div span:not(._5ls1):not(._5x8v):not(._5a4-):not([role]):not(._5a4z)').innerHTML
-            const month = event.querySelector('div span._5a4-').innerHTML
-            const date = event.querySelector('div span._5a4z').innerHTML
-            const today = new Date()
-            const year = today.getFullYear()
-            let see_more = true
-            while (see_more) {
-                const see_more_button = event.querySelector("p._4etw a[title='See more']")
-                if (see_more_button)
-                    see_more_button.click()
-                see_more = !see_more_button.classList.contains('_4a6u');
-            }
-            const description = event.querySelector("p._4etw span")
-            dct['id'] = event.getAttribute('id').replace(/anchor.+/g, '')
-            dct['title'] = title.innerHTML
-            dct['description'] = description.innerHTML
-            dct['info'] = info
-            dct['start_date'] = `${date} ${month}, ${year}`
-            data.push(dct)
+            // const title = event.querySelector('div a._7ty')
+            // const info = event.querySelector('div span:not(._5ls1):not(._5x8v):not(._5a4-):not([role]):not(._5a4z)').innerHTML
+            // const month = event.querySelector('div span._5a4-').innerHTML
+            // const date = event.querySelector('div span._5a4z').innerHTML
+            // const today = new Date()
+            // const year = today.getFullYear()
+            // let see_more = true
+            // while (see_more) {
+            //     const see_more_button = event.querySelector("p._4etw a[title='See more']")
+            //     if (see_more_button)
+            //         see_more_button.click()
+            //     see_more = !see_more_button.classList.contains('_4a6u');
+            // }
+            // const description = event.querySelector("p._4etw span")
+            // dct['id'] = 
+            // dct['title'] = title.innerHTML
+            // dct['description'] = description.innerHTML
+            // dct['info'] = info
+            // dct['start_date'] = `${date} ${month}, ${year}`
+            data.push(event.getAttribute('id').replace(/anchor.+/g, ''))
         }
         return data;
     }, scroll_event_page)
@@ -116,10 +116,8 @@ let scrape = async () => {
     console.log('Navigate to Discover page.')
     await goTo(page, '#u_0_u > div:nth-child(4) > a')
 
-    const result = await scrape_event_content(page)
-    const event_ids = result.map(element => {
-        return element['id']
-    });
+    let results = []
+    const event_ids = await scrape_event_content(page)
 
     check_directory(data_path)
 
@@ -131,37 +129,91 @@ let scrape = async () => {
         console.log('Fetching...', event_detail_url)
         await page.goto(event_detail_url);
         await page.waitFor(2)
-        const image_url = await page.evaluate(async () => {
+        const event_data = await page.evaluate(async () => {
             let sleep = (time) => {
                 return new Promise((resolve) => setTimeout(resolve, time));
             }
+
+            let getInnerHTMLOrNull = (element) => {
+                if (element)
+                    return element.innerHTML
+                return null
+            }
+
+            let getAttributeOrNull = (element, attr) => {
+                if (element)
+                    return element.getAttribute(attr)
+                return null
+            }
+
+            await sleep(500)
+
+            let dct = {}
+            const title = document.querySelector('#seo_h1_tag')
+            const date = document.querySelector('#title_subtitle > span')
+            let venue
+            if (date) {
+                venue = document.querySelector('#u_0_1f')
+            } else {    
+                venue = document.querySelector('#u_0_1b')
+            }
+            const location = document.querySelector('#u_0_1e > table > tbody > tr > td._51m-._51mw > div > div._4dpf._phw > div > div:nth-child(2) > div > div')
+            const timeinfo = document.querySelector('#event_time_info > div > table > tbody > tr > td._51m-._4930._phw._51mw > div > div > div:nth-child(2) > div > div._2ycp._5xhk')
+            const organizer = document.querySelector('#title_subtitle > div > div > div > div > div > a:nth-child(1)')
+            dct['id'] = event_id
+            dct['title'] = getInnerHTMLOrNull(title)
+            dct['date'] = getAttributeOrNull(date, 'title')
+            dct['venue'] = getInnerHTMLOrNull(venue)
+            dct['location'] = getInnerHTMLOrNull(location)
+            dct['time_info'] = getInnerHTMLOrNull(timeinfo)
+            dct['time_content'] = getAttributeOrNull(timeinfo, 'content')
+            dct['organizer'] = getInnerHTMLOrNull(organizer)
+
+            const see_more = document.querySelector('._63eo')
+            if (see_more) 
+                see_more.click()
+
+            const description = document.querySelector('div._63ew')
+            dct['description'] = getInnerHTMLOrNull(description)
+            
             const cover_link = document.querySelector('#event_header_primary > div:nth-child(1) > div._3kwh > a')
-            if (!cover_link)
-                return
-            cover_link.click()
-            await sleep(1000)
-            const image = document.querySelector('#photos_snowlift > div._n9 > div > div.fbPhotoSnowliftContainer.snowliftPayloadRoot.uiContextualLayerParent > div.clearfix.fbPhotoSnowliftPopup > div.stageWrapper.lfloat._ohe > div.stage > div._2-sx > img')
-            const image_url = image.getAttribute('src')
-            return image_url
+            if (cover_link) {
+                cover_link.click()
+                await sleep(1000)
+                const image = document.querySelector('#photos_snowlift > div._n9 > div > div.fbPhotoSnowliftContainer.snowliftPayloadRoot.uiContextualLayerParent > div.clearfix.fbPhotoSnowliftPopup > div.stageWrapper.lfloat._ohe > div.stage > div._2-sx > img')
+                dct['image_url'] = getAttributeOrNull(image, 'src')
+            } else {
+                dct['image_url'] = null
+            } 
+            const categories = document.querySelectorAll('div._62hs._4-u3 > div > ul > li > a')
+            let categories_data = []
+            for (let i = 0; i < categories.length; i++) {
+                const category = categories[i];
+                categories_data.push(getInnerHTMLOrNull(category))
+            }
+            dct['categories'] = categories_data
+            return dct
         })
-        if (image_url) {
-            await download(image_url, event_id, function () {
-                console.log('done')
-            })
-        } else {
-            image_not_found_events.push(event_id)
-            console.log(`Cannot find image for ${event_id}.`)
-        }
+        results.push(event_data)
+        console.log(results)
+        // if (event_data.image_url) {
+        //     await download(image_url, event_id, function () {
+        //         console.log('done')
+        //     })
+        // } else {
+        //     image_not_found_events.push(event_id)
+        //     console.log(`Cannot find image for ${event_id}.`)
+        // }
     }
 
     const data = {
         'events_without_image': image_not_found_events, 
-        'results': result
+        'results': results
     }
     fs.writeFile(`${data_path}/scrape.json`, JSON.stringify(data), 'utf8');
     
     browser.close()
-    return result
+    return results
 };
 
 scrape().then((value) => {
