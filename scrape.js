@@ -52,34 +52,13 @@ let scrape_event_content = async (page) => {
 
         for (let i = 0; i < scroll_event_page; i++) {
             window.scrollTo(0, document.body.scrollHeight);
-            await sleep(1000)
-            // window.scrollTo(0, document.body.scrollHeight);
+            await sleep(2000)
         }
 
         let data = []
         const events = document.querySelectorAll("#u_0_t > div > div._5c_7._4bl7 > div > div > div:nth-child(2) > ul li")
         for (let i = 0; i < events.length - 1; i++) {
-            // let dct = {};
             const event = events[i];
-            // const title = event.querySelector('div a._7ty')
-            // const info = event.querySelector('div span:not(._5ls1):not(._5x8v):not(._5a4-):not([role]):not(._5a4z)').innerHTML
-            // const month = event.querySelector('div span._5a4-').innerHTML
-            // const date = event.querySelector('div span._5a4z').innerHTML
-            // const today = new Date()
-            // const year = today.getFullYear()
-            // let see_more = true
-            // while (see_more) {
-            //     const see_more_button = event.querySelector("p._4etw a[title='See more']")
-            //     if (see_more_button)
-            //         see_more_button.click()
-            //     see_more = !see_more_button.classList.contains('_4a6u');
-            // }
-            // const description = event.querySelector("p._4etw span")
-            // dct['id'] = 
-            // dct['title'] = title.innerHTML
-            // dct['description'] = description.innerHTML
-            // dct['info'] = info
-            // dct['start_date'] = `${date} ${month}, ${year}`
             data.push(event.getAttribute('id').replace(/anchor.+/g, ''))
         }
         return data;
@@ -122,6 +101,7 @@ let scrape = async () => {
     check_directory(data_path)
 
     let image_not_found_events = []
+    console.log('Total events:', event_ids.length)
     console.log('Event detail page visit start ...')
     for (idx in event_ids) {
         event_id = event_ids[idx]
@@ -129,7 +109,7 @@ let scrape = async () => {
         console.log('Fetching...', event_detail_url)
         await page.goto(event_detail_url);
         await page.waitFor(2)
-        const event_data = await page.evaluate(async () => {
+        const event_data = await page.evaluate(async (event_id) => {
             let sleep = (time) => {
                 return new Promise((resolve) => setTimeout(resolve, time));
             }
@@ -149,18 +129,52 @@ let scrape = async () => {
             await sleep(500)
 
             let dct = {}
-            const title = document.querySelector('#seo_h1_tag')
-            const date = document.querySelector('#title_subtitle > span')
-            let venue
-            if (date) {
-                venue = document.querySelector('#u_0_1f')
-            } else {    
-                venue = document.querySelector('#u_0_1b')
+
+            let selector = {
+                'title': '#seo_h1_tag',
+                'date': '#title_subtitle > span',
+                'venue': {
+                    'one_day': '#u_0_1f',
+                    'multi_day': '#u_0_1b',
+                    'video': '._xkh a'
+                },
+                'location': {
+                    'one_day': '#u_0_1e > table > tbody > tr > td._51m-._51mw > div > div._4dpf._phw > div > div:nth-child(2) > div > div',
+                    'multi_day': '#u_0_1a > table > tbody > tr > td._51m-._51mw > div > div._4dpf._phw > div > div:nth-child(2) > div > div',
+                    'video': '._xkh a + div',
+                },
+                'timeinfo': {
+                    'one_day': '#event_time_info > div > table > tbody > tr > td._51m-._4930._phw._51mw > div > div > div:nth-child(2) > div > div._2ycp._5xhk',
+                    'multi_day': '#event_time_info > a > table > tbody > tr > td._51m-._51mw > div > div._4dpf._phw > div > div:nth-child(2) > div > div._2ycp._5xhk',
+                    'video': '#event_time_info > div > table > tbody > tr > td._51m-._4930._phw._51mw > div > div > div:nth-child(2) > div > div._2ycp._5xhk',
+                },
+                'organizer': {
+                    'one_day': '#title_subtitle > div > div > div > div > div > a:nth-child(1)',
+                    'multi_day': '#title_subtitle > div > a',
+                    'video': '#title_subtitle > div > div > div > div > div > a',
+                }
             }
-            const location = document.querySelector('#u_0_1e > table > tbody > tr > td._51m-._51mw > div > div._4dpf._phw > div > div:nth-child(2) > div > div')
-            const timeinfo = document.querySelector('#event_time_info > div > table > tbody > tr > td._51m-._4930._phw._51mw > div > div > div:nth-child(2) > div > div._2ycp._5xhk')
-            const organizer = document.querySelector('#title_subtitle > div > div > div > div > div > a:nth-child(1)')
+
+            const title = document.querySelector(selector.title)
+            const date = document.querySelector(selector.date)
+
+            let selector_key = 'one_day'
+
+            if (!date) {
+                selector_key = 'multi_day'
+            }
+
+            const video = document.querySelector('video#u_0_13')
+            if (video) {
+                selector_key = 'video'
+            }
+
+            const venue = document.querySelector(selector.venue[selector_key])
+            const location = document.querySelector(selector.location[selector_key])
+            const timeinfo = document.querySelector(selector.timeinfo[selector_key])
+            const organizer = document.querySelector(selector.organizer[selector_key])
             dct['id'] = event_id
+            dct['selector'] = selector_key
             dct['title'] = getInnerHTMLOrNull(title)
             dct['date'] = getAttributeOrNull(date, 'title')
             dct['venue'] = getInnerHTMLOrNull(venue)
@@ -170,12 +184,12 @@ let scrape = async () => {
             dct['organizer'] = getInnerHTMLOrNull(organizer)
 
             const see_more = document.querySelector('._63eo')
-            if (see_more) 
+            if (see_more)
                 see_more.click()
 
             const description = document.querySelector('div._63ew')
             dct['description'] = getInnerHTMLOrNull(description)
-            
+
             const cover_link = document.querySelector('#event_header_primary > div:nth-child(1) > div._3kwh > a')
             if (cover_link) {
                 cover_link.click()
@@ -184,7 +198,7 @@ let scrape = async () => {
                 dct['image_url'] = getAttributeOrNull(image, 'src')
             } else {
                 dct['image_url'] = null
-            } 
+            }
             const categories = document.querySelectorAll('div._62hs._4-u3 > div > ul > li > a')
             let categories_data = []
             for (let i = 0; i < categories.length; i++) {
@@ -193,25 +207,24 @@ let scrape = async () => {
             }
             dct['categories'] = categories_data
             return dct
-        })
+        }, event_id)
         results.push(event_data)
-        console.log(results)
-        // if (event_data.image_url) {
-        //     await download(image_url, event_id, function () {
-        //         console.log('done')
-        //     })
-        // } else {
-        //     image_not_found_events.push(event_id)
-        //     console.log(`Cannot find image for ${event_id}.`)
-        // }
+        if (event_data.image_url) {
+            await download(event_data.image_url, event_id, function () {
+                console.log('done')
+            })
+        } else {
+            image_not_found_events.push(event_id)
+            console.log(`Cannot find image for ${event_id}.`)
+        }
     }
 
     const data = {
-        'events_without_image': image_not_found_events, 
+        'events_without_image': image_not_found_events,
         'results': results
     }
     fs.writeFile(`${data_path}/scrape.json`, JSON.stringify(data), 'utf8');
-    
+
     browser.close()
     return results
 };
