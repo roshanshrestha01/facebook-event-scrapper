@@ -190,25 +190,52 @@ let scrape = async () => {
             const description = document.querySelector('div._63ew')
             dct['description'] = getInnerHTMLOrNull(description)
 
+            if (selector_key == 'multi_day') {
+                const events_date = document.querySelectorAll('._1oa6 > div')
+                let _event_date = []
+                let _time_content = []
+                for (let i = 0; i < events_date.length; i++) {
+                    const event_date = events_date[i];
+                    event_date.click()
+                    await sleep(500)
+                    const _datetimediv = document.querySelector(selector.timeinfo[selector_key])
+                    const datetime_content = getAttributeOrNull(_datetimediv, 'content')
+                    _time_content.push(datetime_content)
+                    const _datetime = datetime_content.split(' to ')
+                    const _start_date = new Date(_datetime[0])
+                    const _end_date = new Date(_datetime[1])
+                    _event_date.push(
+                        [_start_date.toLocaleString(), _end_date.toLocaleString()]
+                    )
+                }
+                dct['time_content'] = _time_content
+                dct['event_day'] = _event_date
+            } else {
+                const datetime = dct['time_content'].split(' to ')
+                const start_date = new Date(datetime[0])
+                const end_date = new Date(datetime[1])
+                dct['event_day'] = [start_date.toLocaleString(), end_date.toLocaleString()]
+            }
+
+
             const show_map = document.querySelector('#u_0_1g a')
             if (show_map) {
                 show_map.click()
                 await sleep(500)
             }
             const map = document.querySelector('#u_0_1i > a > div > div > img')
-            
+
             if (map) {
                 const map_src = getAttributeOrNull(map, 'src')
                 const map_regex = 'markers.*&'
                 const found = map_src.match(map_regex)
-                console.log(found)
                 if (found) {
                     const marker = found[0].replace('markers=', '').replace('&', '').split('%2C')
                     dct['latitude'] = marker[0]
                     dct['longitude'] = marker[1]
                 }
             }
-        
+
             
             const cover_link = document.querySelector('#event_header_primary > div:nth-child(1) > div._3kwh > a')
             if (cover_link) {
@@ -219,6 +246,8 @@ let scrape = async () => {
             } else {
                 dct['image_url'] = null
             }
+            
+            
             const categories = document.querySelectorAll('div._62hs._4-u3 > div > ul > li > a')
             let categories_data = []
             for (let i = 0; i < categories.length; i++) {
@@ -226,11 +255,6 @@ let scrape = async () => {
                 categories_data.push(getInnerHTMLOrNull(category))
             }
             dct['categories'] = categories_data
-            
-            const datetime = dct['time_content'].split(' to ')
-            const start_date = new Date(datetime[0])
-            const end_date = new Date(datetime[1])
-            dct['event_date'] = [start_date.toLocaleString(), end_date.toLocaleString()]
             return dct
         }, event_id)
         results.push(event_data)
