@@ -134,13 +134,13 @@ let scrape = async () => {
                 'title': '#seo_h1_tag',
                 'date': '#title_subtitle > span',
                 'venue': {
-                    'one_day': '#u_0_1f',
-                    'multi_day': '#u_0_1b',
+                    'one_day': '._xkh a._5xhk',
+                    'multi_day': '#u_0_1a',
                     'video': '._xkh a'
                 },
                 'location': {
-                    'one_day': '#u_0_1e > table > tbody > tr > td._51m-._51mw > div > div._4dpf._phw > div > div:nth-child(2) > div > div',
-                    'multi_day': '#u_0_1a > table > tbody > tr > td._51m-._51mw > div > div._4dpf._phw > div > div:nth-child(2) > div > div',
+                    'one_day': '._xkh a._5xhk + div',
+                    'multi_day': '#u_0_1a + div',
                     'video': '._xkh a + div',
                 },
                 'timeinfo': {
@@ -190,6 +190,26 @@ let scrape = async () => {
             const description = document.querySelector('div._63ew')
             dct['description'] = getInnerHTMLOrNull(description)
 
+            const show_map = document.querySelector('#u_0_1g a')
+            if (show_map) {
+                show_map.click()
+                await sleep(500)
+            }
+            const map = document.querySelector('#u_0_1i > a > div > div > img')
+            
+            if (map) {
+                const map_src = getAttributeOrNull(map, 'src')
+                const map_regex = 'markers.*&'
+                const found = map_src.match(map_regex)
+                console.log(found)
+                if (found) {
+                    const marker = found[0].replace('markers=', '').replace('&', '').split('%2C')
+                    dct['latitude'] = marker[0]
+                    dct['longitude'] = marker[1]
+                }
+            }
+        
+            
             const cover_link = document.querySelector('#event_header_primary > div:nth-child(1) > div._3kwh > a')
             if (cover_link) {
                 cover_link.click()
@@ -206,6 +226,11 @@ let scrape = async () => {
                 categories_data.push(getInnerHTMLOrNull(category))
             }
             dct['categories'] = categories_data
+            
+            const datetime = dct['time_content'].split(' to ')
+            const start_date = new Date(datetime[0])
+            const end_date = new Date(datetime[1])
+            dct['event_date'] = [start_date.toLocaleString(), end_date.toLocaleString()]
             return dct
         }, event_id)
         results.push(event_data)
