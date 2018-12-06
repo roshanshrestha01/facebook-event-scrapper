@@ -135,12 +135,12 @@ let scrape = async () => {
                 'date': '#title_subtitle > span',
                 'venue': {
                     'one_day': '._xkh a._5xhk',
-                    'multi_day': '#u_0_1a',
+                    'multi_day': '._xkh a._5xhk',
                     'video': '._xkh a'
                 },
                 'location': {
                     'one_day': '._xkh a._5xhk + div',
-                    'multi_day': '#u_0_1a + div',
+                    'multi_day': '._xkh a._5xhk + div',
                     'video': '._xkh a + div',
                 },
                 'timeinfo': {
@@ -214,7 +214,7 @@ let scrape = async () => {
                 const datetime = dct['time_content'].split(' to ')
                 const start_date = new Date(datetime[0])
                 const end_date = new Date(datetime[1])
-                dct['event_day'] = [start_date.toLocaleString(), end_date.toLocaleString()]
+                dct['event_day'] = [[start_date.toLocaleString(), end_date.toLocaleString()]]
             }
 
 
@@ -223,7 +223,7 @@ let scrape = async () => {
                 show_map.click()
                 await sleep(500)
             }
-            const map = document.querySelector('#u_0_1i > a > div > div > img')
+            const map = document.querySelector('._4j7v > img')
 
             if (map) {
                 const map_src = getAttributeOrNull(map, 'src')
