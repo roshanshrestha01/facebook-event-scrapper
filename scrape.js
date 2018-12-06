@@ -68,20 +68,24 @@ let scrape_event_content = async (page) => {
 
 
 let scrape = async () => {
-    const browser = await puppeteer.launch({
-        executablePath: '/usr/bin/chromium',
-        args: ["--disable-notifications"],
-        headless: false
-    });
-
-    const page = await browser.newPage();
     const {
         base_url,
+        headless,
+        executablePath,
         event_url,
         data_path,
         username,
         password
     } = credential
+    
+    const browser = await puppeteer.launch({
+        executablePath: executablePath,
+        args: ["--disable-notifications"],
+        headless: headless
+    });
+
+    const page = await browser.newPage();
+    
 
     await page.goto(base_url);
     await page.type('#email', username);
