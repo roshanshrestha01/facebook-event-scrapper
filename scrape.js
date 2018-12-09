@@ -57,7 +57,7 @@ let scrape_event_content = async (page) => {
 
         let data = []
         const events = document.querySelectorAll("._5c_7 .uiList li")
-        
+
         for (let i = 0; i < events.length - 1; i++) {
             const event = events[i];
             data.push(event.getAttribute('id').replace(/anchor.+/g, ''))
@@ -78,7 +78,7 @@ let scrape = async () => {
         username,
         password
     } = credential
-    
+
     const browser = await puppeteer.launch({
         executablePath: executablePath,
         args: ["--disable-notifications"],
@@ -86,7 +86,7 @@ let scrape = async () => {
     });
 
     const page = await browser.newPage();
-    
+
 
     await page.goto(base_url);
     await page.type('#email', username);
@@ -219,20 +219,24 @@ let scrape = async () => {
                     const _datetimediv = document.querySelector(selector.timeinfo[selector_key])
                     const datetime_content = getAttributeOrNull(_datetimediv, 'content')
                     _time_content.push(datetime_content)
-                    const _datetime = datetime_content.split(' to ')
-                    const _start_date = new Date(_datetime[0])
-                    const _end_date = new Date(_datetime[1])
-                    _event_date.push(
-                        [_start_date.toLocaleString(), _end_date.toLocaleString()]
-                    )
+                    if (datetime_content) {
+                        const _datetime = datetime_content.split(' to ')
+                        const _start_date = new Date(_datetime[0])
+                        const _end_date = new Date(_datetime[1])
+                        _event_date.push(
+                            [_start_date.toLocaleString(), _end_date.toLocaleString()]
+                        )
+                    }
                 }
                 dct['time_content'] = _time_content
                 dct['event_day'] = _event_date
             } else {
-                const datetime = dct['time_content'].split(' to ')
-                const start_date = new Date(datetime[0])
-                const end_date = new Date(datetime[1])
-                dct['event_day'] = [[start_date.toLocaleString(), end_date.toLocaleString()]]
+                if (dct['time_content']) {
+                    const datetime = dct['time_content'].split(' to ')
+                    const start_date = new Date(datetime[0])
+                    const end_date = new Date(datetime[1])
+                    dct['event_day'] = [[start_date.toLocaleString(), end_date.toLocaleString()]]
+                }
             }
 
 
@@ -254,7 +258,7 @@ let scrape = async () => {
                 }
             }
 
-            
+
             const cover_link = document.querySelector('#event_header_primary > div:nth-child(1) > div._3kwh > a')
             if (cover_link) {
                 cover_link.click()
@@ -264,8 +268,8 @@ let scrape = async () => {
             } else {
                 dct['image_url'] = null
             }
-            
-            
+
+
             const categories = document.querySelectorAll('div._62hs._4-u3 > div > ul > li > a')
             let categories_data = []
             for (let i = 0; i < categories.length; i++) {
@@ -283,7 +287,7 @@ let scrape = async () => {
                 })
             } catch (e) {
                 console.log(e)
-            }            
+            }
         } else {
             image_not_found_events.push(event_id)
             console.log(`Cannot find image for ${event_id}.`)
@@ -294,8 +298,8 @@ let scrape = async () => {
         'events_without_image': image_not_found_events,
         'results': results
     }
-    
-    fs.writeFile(`${data_path}/scrape.json`, JSON.stringify(data), function(err) {
+
+    fs.writeFile(`${data_path}/scrape.json`, JSON.stringify(data), function (err) {
         console.log("File saved successfully!");
     });
 
