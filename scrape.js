@@ -56,7 +56,8 @@ let scrape_event_content = async (page) => {
         }
 
         let data = []
-        const events = document.querySelectorAll("#u_0_t > div > div._5c_7._4bl7 > div > div > div:nth-child(2) > ul li")
+        const events = document.querySelectorAll("._5c_7 .uiList li")
+        
         for (let i = 0; i < events.length - 1; i++) {
             const event = events[i];
             data.push(event.getAttribute('id').replace(/anchor.+/g, ''))
@@ -97,11 +98,11 @@ let scrape = async () => {
     await goTo(page, '#navItem_2344061033 > a')
 
     console.log('Navigate to Discover page.')
-    await goTo(page, '#u_0_u > div:nth-child(4) > a')
+    await goTo(page, '[data-key="discovery"] > a')
 
     let results = []
     const event_ids = await scrape_event_content(page)
-
+    
     check_directory(data_path)
 
     let image_not_found_events = []
@@ -263,9 +264,13 @@ let scrape = async () => {
         }, event_id)
         results.push(event_data)
         if (event_data.image_url) {
-            await download(event_data.image_url, event_id, function () {
-                console.log('done')
-            })
+            try {
+                await download(event_data.image_url, event_id, function () {
+                    console.log('done')
+                })
+            } catch (e) {
+                console.log(e)
+            }            
         } else {
             image_not_found_events.push(event_id)
             console.log(`Cannot find image for ${event_id}.`)
@@ -276,7 +281,10 @@ let scrape = async () => {
         'events_without_image': image_not_found_events,
         'results': results
     }
-    fs.writeFile(`${data_path}/scrape.json`, JSON.stringify(data), 'utf8');
+    
+    fs.writeFile(`${data_path}/scrape.json`, JSON.stringify(data), function(err) {
+        console.log("File saved successfully!");
+    });
 
     browser.close()
     return results
