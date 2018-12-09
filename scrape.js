@@ -95,16 +95,20 @@ let scrape = async () => {
     await page.waitForNavigation()
 
     console.log('Navigate to Event page.')
-    if (await page.$('#navItem_2344061033 > a') === null) {
-        console.log('Event link not found')
-        return
-    }
-    await goTo(page, '#navItem_2344061033 > a')
+    // if (await page.$('#navItem_2344061033 > aasdf') === null) {
+    //     console.log('Event link not found')
+    //     browser.close()
+    //     return
+    // }
+    // await goTo(page, '#navItem_2344061033 > a')
+    await page.goto(`${base_url}/events/`);
+    await page.waitFor(2000)
 
     console.log('Navigate to Discover page.')
 
     if (await page.$('[data-key="discovery"] > a') === null) {
         console.log('Discovery link not found')
+        browser.close()
         return
     }
     await goTo(page, '[data-key="discovery"] > a')
