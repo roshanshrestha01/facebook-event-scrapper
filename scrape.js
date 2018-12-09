@@ -98,11 +98,16 @@ let scrape = async () => {
     await goTo(page, '#navItem_2344061033 > a')
 
     console.log('Navigate to Discover page.')
+
+    if (await page.$('[data-key="discovery"] > a') === null) {
+        console.log('Discovery link not found')
+        return
+    }
     await goTo(page, '[data-key="discovery"] > a')
 
     let results = []
     const event_ids = await scrape_event_content(page)
-    
+
     check_directory(data_path)
 
     let image_not_found_events = []
