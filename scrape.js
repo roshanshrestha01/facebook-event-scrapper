@@ -292,16 +292,16 @@ let scrape = async () => {
             image_not_found_events.push(event_id)
             console.log(`Cannot find image for ${event_id}.`)
         }
-    }
 
-    const data = {
-        'events_without_image': image_not_found_events,
-        'results': results
+        const data = {
+            'events_without_image': image_not_found_events,
+            'results': results
+        }
+    
+        fs.writeFile(`${data_path}/scrape.json`, JSON.stringify(data), function (err) {
+            console.log("File saved successfully!");
+        });
     }
-
-    fs.writeFile(`${data_path}/scrape.json`, JSON.stringify(data), function (err) {
-        console.log("File saved successfully!");
-    });
 
     browser.close()
     return results
