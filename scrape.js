@@ -95,6 +95,10 @@ let scrape = async () => {
     await page.waitForNavigation()
 
     console.log('Navigate to Event page.')
+    if (await page.$('#navItem_2344061033 > a') === null) {
+        console.log('Event link not found')
+        return
+    }
     await goTo(page, '#navItem_2344061033 > a')
 
     console.log('Navigate to Discover page.')
