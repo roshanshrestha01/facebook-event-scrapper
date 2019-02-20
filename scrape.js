@@ -39,6 +39,14 @@ let goTo = async (page, selector) => {
 }
 
 
+let addLocation = async (page, location) => {
+    await page.click('#u_0_s > div > div._5c_6 > div > ul > li:nth-child(3) > div > ul li:last-child')
+    await page.type('#u_0_s > div > div._5c_6 > div > ul > li:nth-child(3) > div > ul li:last-child input', location)
+    await page.waitFor(1000)
+    await page.click('#globalContainer > div.uiContextualLayerPositioner.uiLayer.uiContextualLayerPositionerFixed > div > div')
+}
+
+
 let scrape_event_content = async (page) => {
     const {
         scroll_event_page
@@ -76,7 +84,8 @@ let scrape = async () => {
         event_url,
         data_path,
         username,
-        password
+        password,
+        location,
     } = credential
 
     const browser = await puppeteer.launch({
@@ -112,6 +121,12 @@ let scrape = async () => {
         return
     }
     await goTo(page, '[data-key="discovery"] > a')
+
+
+    // Adding Kathmandu, Nepal in facebook event location
+    // Click more button in Location
+
+    await addLocation(page, location)
 
     let results = []
     const event_ids = await scrape_event_content(page)
@@ -209,7 +224,7 @@ let scrape = async () => {
                 const description = document.querySelector('div._63ew')
                 dct['description'] = getInnerHTMLOrNull(description)
 
-                if (selector_key == 'multi_day') {
+                if (selector_key === 'multi_day') {
                     const events_date = document.querySelectorAll('._1oa6 > div')
                     let _event_date = []
                     let _time_content = []
