@@ -42,7 +42,12 @@ let goTo = async (page, selector) => {
 let addLocation = async (page, location) => {
     await page.click('#u_0_s > div > div._5c_6 > div > ul > li:nth-child(3) > div > ul li:last-child')
     await page.type('#u_0_s > div > div._5c_6 > div > ul > li:nth-child(3) > div > ul li:last-child input', location)
+    let exists = !!(await page.$('#globalContainer > div.uiContextualLayerPositioner.uiLayer.uiContextualLayerPositionerFixed > div > div'));
     await page.waitFor(1000)
+    while (!exists) {
+        await page.waitFor(1000)
+        exists = !!(await page.$('#globalContainer > div.uiContextualLayerPositioner.uiLayer.uiContextualLayerPositionerFixed > div > div'));
+    }
     await page.click('#globalContainer > div.uiContextualLayerPositioner.uiLayer.uiContextualLayerPositionerFixed > div > div')
 }
 
@@ -85,7 +90,7 @@ let scrape = async () => {
         data_path,
         username,
         password,
-        location,
+        locations,
     } = credential
 
     const browser = await puppeteer.launch({
@@ -122,22 +127,29 @@ let scrape = async () => {
     }
     await goTo(page, '[data-key="discovery"] > a')
 
+    let results = []
+    let event_id_arr = []
+    let event_ids = []
 
     // Adding Kathmandu, Nepal in facebook event location
     // Click more button in Location
+    for (let idx in locations) {
+        await addLocation(page, locations[idx])
+        const location_event_ids = await scrape_event_content(page)
+        event_id_arr.push(location_event_ids)
+    }
 
-    await addLocation(page, location)
-
-    let results = []
-    const event_ids = await scrape_event_content(page)
+    event_id_arr.forEach(location_event_id => {
+        location_event_id.forEach(id => event_ids.push(id))
+    })
 
     check_directory(data_path)
 
     let image_not_found_events = []
     console.log('Total events:', event_ids.length)
     console.log('Event detail page visit start ...')
-    for (idx in event_ids) {
-        event_id = event_ids[idx]
+    for (let idx in event_ids) {
+        let event_id = event_ids[idx]
         const event_detail_url = event_url.replace('${eventId}', event_id)
         console.log('Fetching...', event_detail_url)
         try {
