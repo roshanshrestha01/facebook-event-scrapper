@@ -103,10 +103,19 @@ let scrape = async () => {
 
 
     await page.goto(base_url);
-    await page.type('#email', username);
-    await page.type('#pass', password);
-    await page.click('#loginbutton input');
-    await page.waitForNavigation()
+    // await page.type('#email', username);
+    // await page.type('#pass', password);
+    // await page.click('#loginbutton input');
+    // await page.waitForNavigation()
+
+    await page.setViewport({ width: 1024, height: 800 });
+    await page.goto(url, { waitUntil: "networkidle2" });
+    await page.type("#email", username, { delay: 30 })
+    await page.type("#pass", password, { delay: 30 })
+    await page.mouse.click(600, 510, {delay: 20});
+    await page.waitFor(1500);
+    await page.click("#loginbutton");
+    await page.waitForNavigation({ waitUntil: "networkidle0" });
 
     console.log('Navigate to Event page.')
     // if (await page.$('#navItem_2344061033 > aasdf') === null) {
